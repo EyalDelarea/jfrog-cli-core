@@ -27,19 +27,22 @@ type MarkdownGenerator struct {
 
 func GenerateSummaryMarkdown(result *Result, operationTitle Operation) error {
 	githubMarkdownGenerator, cleanUp, err := NewGithubMarkdownGenerator(result, operationTitle)
+	if githubMarkdownGenerator == nil {
+		return nil
+	}
 	defer func() {
 		err = cleanUp()
 	}()
 	if err != nil {
 		return err
 	}
-	if githubMarkdownGenerator == nil {
-		return nil
-	}
 	return githubMarkdownGenerator.WriteGithubJobSummary()
 }
 
 func NewGithubMarkdownGenerator(result *Result, title Operation) (markdownGenerator *MarkdownGenerator, cleanUp func() error, err error) {
+	if result.Reader() == nil {
+		return
+	}
 	filename := os.Getenv(GithubEnvStepSummary)
 	if filename == "" {
 		wd, _ := os.Getwd()
@@ -58,7 +61,6 @@ func NewGithubMarkdownGenerator(result *Result, title Operation) (markdownGenera
 }
 
 func (m *MarkdownGenerator) WriteGithubJobSummary() (err error) {
-
 	if m.result.SuccessCount() > 0 {
 		var transferDetailsArray []*clientutils.FileTransferDetails
 		for transferDetails := new(clientutils.FileTransferDetails); m.result.Reader().NextRecord(transferDetails) == nil; transferDetails = new(clientutils.FileTransferDetails) {
