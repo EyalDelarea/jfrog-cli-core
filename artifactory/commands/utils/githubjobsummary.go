@@ -85,15 +85,15 @@ func (m *MarkdownGenerator) writeHeader(header string) error {
 	return err
 }
 
-func (m *MarkdownGenerator) writeSecondHeader(header string) error {
-	_, err := m.file.WriteString(fmt.Sprintf("### %s\n", header))
-	return err
-}
-
-func (m *MarkdownGenerator) writeString(content string) error {
-	_, err := m.file.WriteString(content)
-	return err
-}
+//func (m *MarkdownGenerator) writeSecondHeader(header string) error {
+//	_, err := m.file.WriteString(fmt.Sprintf("### %s\n", header))
+//	return err
+//}
+//
+//func (m *MarkdownGenerator) writeString(content string) error {
+//	_, err := m.file.WriteString(content)
+//	return err
+//}
 
 func (m *MarkdownGenerator) writeTable(header string, details []*clientutils.FileTransferDetails) error {
 	// Write the table header

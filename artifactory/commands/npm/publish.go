@@ -186,7 +186,7 @@ func (npc *NpmPublishCommand) Run() (err error) {
 	if !npc.collectBuildInfo {
 		log.Info("npm publish finished successfully.")
 		err = commandsutils.GenerateSummaryMarkdown(npc.Result(), commandsutils.Publish)
-		return nil
+		return err
 	}
 
 	npmModule, err := npmBuild.AddNpmModule("")
