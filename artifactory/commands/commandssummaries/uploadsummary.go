@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/jfrog/jfrog-cli-core/v2/artifactory/utils"
 	"github.com/jfrog/jfrog-cli-core/v2/commandsummary"
+	"strings"
 )
 
 type UploadSummary struct {
@@ -62,5 +63,7 @@ func (us *UploadSummary) generateFileTreeMarkdown() string {
 
 func (us *UploadSummary) buildUiUrl(targetPath string) string {
 	template := "%sui/repos/tree/General/%s/?projectKey=%s"
-	return fmt.Sprintf(template, us.PlatformUrl, targetPath, us.JfrogProjectKey)
+	// Test
+	platformURl := strings.Replace(us.PlatformUrl, "https://", "http://", 1)
+	return fmt.Sprintf(template, platformURl, targetPath, us.JfrogProjectKey)
 }
