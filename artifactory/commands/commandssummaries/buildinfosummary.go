@@ -40,8 +40,7 @@ func (bis *BuildInfoSummary) buildInfoTable(builds []*buildInfo.BuildInfo) strin
 	tableBuilder.WriteString("|---------|------------| \n")
 	for _, build := range builds {
 		buildTime := parseBuildTime(build.Started)
-		buildUrl := strings.Replace(build.BuildUrl, "https://", "http://", 1)
-		tableBuilder.WriteString(fmt.Sprintf("| [%s](%s) | %s |\n", build.Name+" "+build.Number, buildUrl, buildTime))
+		tableBuilder.WriteString(fmt.Sprintf("| [%s](%s) | %s |\n", build.Name+" "+build.Number, replaceProtocol(build.BuildUrl), buildTime))
 	}
 	tableBuilder.WriteString("\n\n")
 	return tableBuilder.String()

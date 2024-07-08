@@ -13,7 +13,7 @@ func TestBuildInfoTable(t *testing.T) {
 			Name:     "buildName",
 			Number:   "123",
 			Started:  "2024-05-05T12:47:20.803+0300",
-			BuildUrl: "http://myJFrogPlatform/builds/buildName/123",
+			BuildUrl: "https://myJFrogPlatform/builds/buildName/123",
 		},
 	}
 	expected := "\n\n|  Build Info |  Time Stamp | \n|---------|------------| \n| [buildName 123](http://myJFrogPlatform/builds/buildName/123) | May 5, 2024 , 12:47:20 |\n\n\n"
