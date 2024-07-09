@@ -1,7 +1,6 @@
 package commandssummaries
 
 import (
-	"fmt"
 	buildInfo "github.com/jfrog/build-info-go/entities"
 	"github.com/jfrog/jfrog-cli-core/v2/commandsummary"
 	"strings"
@@ -41,7 +40,7 @@ func (bis *BuildInfoSummary) buildInfoTable(builds []*buildInfo.BuildInfo) strin
 	for _, build := range builds {
 		buildTime := parseBuildTime(build.Started)
 		buildUrl := replaceProtocol(build.BuildUrl)
-		tableBuilder.WriteString(fmt.Sprintf("| [%s](%s) | %s |\n", build.Name+" "+build.Number, buildUrl, buildTime))
+		tableBuilder.WriteString("| [" + build.Name + " " + build.Number + "](" + buildUrl + ") | " + buildTime + " |\n")
 	}
 	tableBuilder.WriteString("\n\n")
 	return tableBuilder.String()
