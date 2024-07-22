@@ -50,42 +50,53 @@ func (labib *localAgentbuildInfoBuilder) SetSkipTaggingLayers(skipTaggingLayers 
 // Create build-info for a docker image.
 func (labib *localAgentbuildInfoBuilder) Build(module string) (*buildinfo.BuildInfo, error) {
 	// Search for image build-info.
-	candidateLayers, manifest, err := labib.searchImage()
+	results, err := labib.searchImage()
 	if err != nil {
 		log.Warn("Failed to collect build-info. No layer(s) was found for image:'" + labib.buildInfoBuilder.image.name + "'. Hint, try to delete the image from the local cache and rerun the command")
 		log.Debug(err.Error())
 		return nil, nil
-	} else {
-		log.Debug("Found manifest.json with the following layers to create build-info:", candidateLayers)
 	}
-	// Create build-info from search results.
-	return labib.buildInfoBuilder.createBuildInfo(labib.commandType, manifest, candidateLayers, module)
+
+	var imageManifest *manifest
+
+	// When list.manifest.json is present, it means the user used containerd storage to pull the image with docker engine.
+	if results["list.manifest.json"] != nil {
+		imageManifest, err = labib.handleContainerdManifest(results, labib.buildInfoBuilder.imageSha2)
+		if err != nil {
+			return nil, err
+		}
+	}
+	// Handle Docker using docker engine
+	if results["manifest.json"] != nil {
+		imageManifest, err = labib.handleManifest(results)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return labib.buildInfoBuilder.createBuildInfo(labib.commandType, imageManifest, results, module)
 }
 
 // Search an image in Artifactory and validate its sha2 with local image.
-func (labib *localAgentbuildInfoBuilder) searchImage() (map[string]*utils.ResultItem, *manifest, error) {
+func (labib *localAgentbuildInfoBuilder) searchImage() (searchResults map[string]*utils.ResultItem, err error) {
 	longImageName, err := labib.buildInfoBuilder.image.GetImageLongNameWithTag()
 	if err != nil {
-		return nil, nil, err
+		return
 	}
 	imagePath := strings.Replace(longImageName, ":", "/", 1)
 	manifestPathsCandidates := getManifestPaths(imagePath, labib.buildInfoBuilder.getSearchableRepo(), labib.commandType)
 	log.Debug("Start searching for image manifest.json")
 	for _, path := range manifestPathsCandidates {
 		log.Debug(`Searching in:"` + path + `"`)
-		resultMap, err := labib.search(path)
+		searchResults, err = labib.search(path)
 		if err != nil {
-			return nil, nil, err
+			return
 		}
-		manifest, err := getManifest(resultMap, labib.buildInfoBuilder.serviceManager, labib.buildInfoBuilder.repositoryDetails.key)
-		if err != nil {
-			return nil, nil, err
-		}
-		if manifest != nil && labib.isVerifiedManifest(manifest) {
-			return resultMap, manifest, nil
+		if len(searchResults) > 0 {
+			return
 		}
 	}
-	return nil, nil, errorutils.CheckErrorf(imageNotFoundErrorMessage, labib.buildInfoBuilder.image.name)
+	err = errorutils.CheckErrorf(imageNotFoundErrorMessage, labib.buildInfoBuilder.image.name)
+	return
 }
 
 // Search image layers in artifactory by the provided image path in artifactory.
@@ -131,8 +142,11 @@ func (labib *localAgentbuildInfoBuilder) search(imagePathPattern string) (result
 
 // Verify manifest by comparing sha256, which references to the image digest. If there is no match, return nil.
 func (labib *localAgentbuildInfoBuilder) isVerifiedManifest(imageManifest *manifest) bool {
-	if imageManifest.Config.Digest != labib.buildInfoBuilder.imageSha2 {
-		log.Debug(`Found incorrect manifest.json file. Expects digest "` + labib.buildInfoBuilder.imageSha2 + `" found "` + imageManifest.Config.Digest)
+	//if imageManifest.Config.Digest != labib.buildInfoBuilder.imageSha2 {
+	//	log.Debug(`Found incorrect manifest.json file. Expects digest "` + labib.buildInfoBuilder.imageSha2 + `" found "` + imageManifest.Config.Digest)
+	//	return false
+	//}
+	if labib.buildInfoBuilder.imageSha2 != "sha256:"+imageManifest.sha256 {
 		return false
 	}
 	return true
@@ -149,6 +163,36 @@ func (labib *localAgentbuildInfoBuilder) getImageDigestFromFatManifest(fatManife
 		return "", err
 	}
 	return searchManifestDigest(imageOs, imageArch, fatManifestContent.Manifests), nil
+}
+
+// Handle docker manifest and verified in the "old" way.
+func (labib *localAgentbuildInfoBuilder) handleManifest(results map[string]*utils.ResultItem) (manifest *manifest, err error) {
+	manifest, err = getManifest(results, labib.buildInfoBuilder.serviceManager, labib.buildInfoBuilder.repositoryDetails.key)
+	if err != nil {
+		return
+	}
+	if manifest != nil && labib.isVerifiedManifest(manifest) {
+		err = fmt.Errorf(`Found incorrect manifest.json file. Expects digest "` + labib.buildInfoBuilder.imageSha2 + `" found "` + manifest.Config.Digest)
+		return
+	}
+	return
+}
+
+func (labib *localAgentbuildInfoBuilder) handleContainerdManifest(results map[string]*utils.ResultItem, imageSha2 string) (resContainerdManifest *manifest, err error) {
+	if len(results) == 0 {
+		return
+	}
+	manifestSearchResult, ok := results["list.manifest.json"]
+	if !ok {
+		return nil, errorutils.CheckErrorf(`couldn't find image "` + labib.buildInfoBuilder.image.name + `" manifest in Artifactory`)
+	}
+	if imageSha2 != "sha256:"+manifestSearchResult.Sha256 {
+		return nil, fmt.Errorf("image id: %s is not equal to the manifest id: %s ", imageSha2, resContainerdManifest.sha256)
+	}
+	// Sets the current image id
+	err = downloadLayer(*results["manifest.json"], &resContainerdManifest, labib.buildInfoBuilder.serviceManager, labib.buildInfoBuilder.repositoryDetails.key)
+	resContainerdManifest.sha256 = manifestSearchResult.Sha256
+	return
 }
 
 // When a client tries to pull an image from a remote repository in Artifactory and the client has some the layers cached locally on the disk,

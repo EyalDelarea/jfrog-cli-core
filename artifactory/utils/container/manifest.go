@@ -23,6 +23,20 @@ type history struct {
 type manifest struct {
 	Config manifestConfig `json:"config,omitempty"`
 	Layers []layer        `json:"layers,omitempty"`
+	sha256 string
+}
+
+// A singular obejct inside manifrst list
+type manifestMetaData struct {
+	MediaType string   `json:"mediaType"`
+	Digest    string   `json:"digest"`
+	Size      int      `json:"size"`
+	Platform  Platform `json:"platform"`
+}
+
+// Containerd manifest contains unique manifest list
+type containerdManifest struct {
+	Manifests []manifestMetaData `json:"manifests"`
 }
 
 type manifestConfig struct {

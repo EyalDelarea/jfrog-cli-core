@@ -365,14 +365,14 @@ func (builder *buildInfoBuilder) createMultiPlatformBuildInfo(fatManifest *FatMa
 func (builder *buildInfoBuilder) createPushBuildProperties(imageManifest *manifest, candidateLayers map[string]*utils.ResultItem) (artifacts []buildinfo.Artifact, dependencies []buildinfo.Dependency, imageLayers []utils.ResultItem, err error) {
 	// Add artifacts.
 	artifacts = append(artifacts, getManifestArtifact(candidateLayers["manifest.json"]))
-	artifacts = append(artifacts, candidateLayers[digestToLayer(builder.imageSha2)].ToArtifact())
+	artifacts = append(artifacts, candidateLayers[digestToLayer(imageManifest.Config.Digest)].ToArtifact())
 
 	// Add layers.
 	imageLayers = append(imageLayers, *candidateLayers["manifest.json"])
-	imageLayers = append(imageLayers, *candidateLayers[digestToLayer(builder.imageSha2)])
+	imageLayers = append(imageLayers, *candidateLayers[digestToLayer(imageManifest.Config.Digest)])
 
 	totalLayers := len(imageManifest.Layers)
-	totalDependencies, err := builder.totalDependencies(candidateLayers[digestToLayer(builder.imageSha2)])
+	totalDependencies, err := builder.totalDependencies(candidateLayers[digestToLayer(imageManifest.Config.Digest)])
 	if err != nil {
 		return nil, nil, nil, err
 	}
@@ -453,4 +453,8 @@ func (builder *buildInfoBuilder) totalDependencies(image *utils.ResultItem) (int
 		return 0, err
 	}
 	return configurationLayer.getNumberOfDependentLayers(), nil
+}
+
+func (builder *buildInfoBuilder) createBuildInfoFromListManifest(commandType CommandType, listManifest *containerdManifest, results map[string]*utils.ResultItem, module string) (*buildinfo.BuildInfo, error) {
+	return nil, nil
 }

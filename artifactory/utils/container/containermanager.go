@@ -34,10 +34,11 @@ type ContainerManagerType int
 const (
 	DockerClient ContainerManagerType = iota
 	Podman
+	Nerdctl = 2
 )
 
 func (cmt ContainerManagerType) String() string {
-	return [...]string{"docker", "podman"}[cmt]
+	return [...]string{"docker", "podman", "nerdctl"}[cmt]
 }
 
 // Container image
